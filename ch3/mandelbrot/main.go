@@ -8,30 +8,49 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
+	"log"
 	"math/cmplx"
-	"os"
+	"net/http"
+	"strconv"
 )
 
 func main() {
+	http.HandleFunc("/", handler) // each request calls handler
+	log.Fatal(http.ListenAndServe("localhost:8000", nil))
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
 	const (
 		xmin, ymin, xmax, ymax = -2, -2, +2, +2
-		width, height          = 1024, 1024
 	)
+
+	width, err := strconv.Atoi(r.URL.Query().Get("width"))
+	if err != nil {
+		fmt.Fprintf(w, "width is invalid: %v", err)
+		return
+	}
+
+	height, err := strconv.Atoi(r.URL.Query().Get("height"))
+	if err != nil {
+		fmt.Fprintf(w, "height is invalid: %v", err)
+		return
+	}
 
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 	for py := 0; py < height; py++ {
-		y := float64(py)/height*(ymax-ymin) + ymin
+		y := float64(py)/float64(height)*(ymax-ymin) + ymin
 		for px := 0; px < width; px++ {
-			x := float64(px)/width*(xmax-xmin) + xmin
+			x := float64(px)/float64(width)*(xmax-xmin) + xmin
 			z := complex(x, y)
 			// Image point (px, py) represents complex value z.
 			img.Set(px, py, mandelbrot(z))
 		}
 	}
-	png.Encode(os.Stdout, img) // NOTE: ignoring errors
+	png.Encode(w, img) // NOTE: ignoring errors
 }
 
 func mandelbrot(z complex128) color.Color {

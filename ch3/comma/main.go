@@ -17,13 +17,14 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 )
 
 func main() {
 	for i := 1; i < len(os.Args); i++ {
-		fmt.Printf("  %s\n", comma(os.Args[i]))
+		fmt.Printf("  %s\n", comma2(os.Args[i]))
 	}
 }
 
@@ -35,6 +36,18 @@ func comma(s string) string {
 		return s
 	}
 	return comma(s[:n-3]) + "," + s[n-3:]
+}
+
+func comma2(s string) string {
+	var buf bytes.Buffer
+	n := len(s)
+	for i, c := range s {
+		buf.WriteRune(c)
+		if (n-i-1)%3 == 0 && i != n-1 {
+			buf.WriteByte(',')
+		}
+	}
+	return buf.String()
 }
 
 //!-
