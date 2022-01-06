@@ -26,11 +26,35 @@ func echo(c net.Conn, shout string, delay time.Duration) {
 //!+
 func handleConn(c net.Conn) {
 	input := bufio.NewScanner(c)
-	for input.Scan() {
-		go echo(c, input.Text(), 1*time.Second)
+	textCh := make(chan string)
+
+	go func() {
+		for input.Scan() {
+			textCh <- input.Text()
+		}
+	}()
+
+	for {
+		timeout := time.NewTimer(10 * time.Second)
+		select {
+		case text := <-textCh:
+			go echo(c, text, 1*time.Second)
+		case <-timeout.C:
+			timeout.Stop()
+			close(c)
+			return
+		}
 	}
 	// NOTE: ignoring potential errors from input.Err()
-	c.Close()
+}
+
+func close(c net.Conn) {
+	fmt.Println("close connection")
+	if con, ok := c.(*net.TCPConn); ok {
+		con.CloseWrite()
+	} else {
+		c.Close()
+	}
 }
 
 //!-

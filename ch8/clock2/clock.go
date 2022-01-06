@@ -7,6 +7,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -16,7 +18,8 @@ import (
 func handleConn(c net.Conn) {
 	defer c.Close()
 	for {
-		_, err := io.WriteString(c, time.Now().Format("15:04:05\n"))
+		loc, _ := time.LoadLocation(*timezone)
+		_, err := io.WriteString(c, time.Now().In(loc).Format("15:04:05\n"))
 		if err != nil {
 			return // e.g., client disconnected
 		}
@@ -24,11 +27,16 @@ func handleConn(c net.Conn) {
 	}
 }
 
+var port = flag.String("port", "8000", "port")
+var timezone = flag.String("timezone", "Asia/Shanghai", "time zone")
+
 func main() {
-	listener, err := net.Listen("tcp", "localhost:8000")
+	flag.Parse()
+	listener, err := net.Listen("tcp", "localhost:"+*port)
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Printf("port: %s, time zone: %s\n", *port, *timezone)
 	//!+
 	for {
 		conn, err := listener.Accept()
